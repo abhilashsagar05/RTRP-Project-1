@@ -13,8 +13,10 @@ const User = require('./models/User');
 const Report = require('./models/Report');
 
 // Define associations
-User.hasMany(Report, { foreignKey: 'userId', as: 'reports' });
-Report.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+if (!User.associations.reports) {
+  User.hasMany(Report, { foreignKey: 'userId', as: 'reports' });
+  Report.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+}
 
 // Import routes
 const authRoutes = require('./routes/auth');
