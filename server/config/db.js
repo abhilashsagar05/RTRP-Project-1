@@ -1,6 +1,6 @@
 const { Sequelize } = require('sequelize');
 
-const databaseUrl = process.env.DATABASE_URL || process.env.SUPABASE_URL;
+const databaseUrl = (process.env.DATABASE_URL || process.env.SUPABASE_URL || '').trim();
 
 const sequelize = databaseUrl
   ? new Sequelize(databaseUrl, {
