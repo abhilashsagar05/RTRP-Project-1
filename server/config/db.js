@@ -1,4 +1,6 @@
 const { Sequelize } = require('sequelize');
+require('pg');
+require('pg-hstore');
 
 const databaseUrl = (process.env.DATABASE_URL || process.env.SUPABASE_URL || '').trim();
 
