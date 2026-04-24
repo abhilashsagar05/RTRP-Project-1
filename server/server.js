@@ -79,6 +79,22 @@ app.use(sanitize);
 // Static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// ===== DATABASE INITIALIZATION FOR SERVERLESS (VERCEL) =====
+if (process.env.VERCEL) {
+  let dbConnected = false;
+  app.use(async (req, res, next) => {
+    if (!dbConnected) {
+      try {
+        await connectDB();
+        dbConnected = true;
+      } catch (err) {
+        console.error('Failed to connect to DB in Vercel:', err);
+      }
+    }
+    next();
+  });
+}
+
 // ===== API ROUTES =====
 
 // Auth routes — with strict rate limiting on login/register
@@ -269,6 +285,8 @@ const startServer = async () => {
   });
 };
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
 
 module.exports = app;
