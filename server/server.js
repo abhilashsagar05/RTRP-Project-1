@@ -129,7 +129,7 @@ const seedUsers = async () => {
       const hashed = await bcrypt.hash(primaryAdminPlain, 12);
       await sequelize.query(
         `INSERT INTO users (name, email, password, role, avatar, "isBanned", "createdAt", "updatedAt")
-         VALUES (:name, :email, :password, :role, '', false, NOW(), NOW())`,
+         VALUES (:name, :email, :password, :role, '', false, datetime('now'), datetime('now'))`,
         {
           replacements: {
             name: 'Abhilash Nallagula',

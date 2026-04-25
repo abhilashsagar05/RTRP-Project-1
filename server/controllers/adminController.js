@@ -1,7 +1,6 @@
 const Report = require('../models/Report');
 const User = require('../models/User');
 const { Op } = require('sequelize');
-const { createFirebaseUser, deleteFirebaseUser } = require('../config/firebase');
 
 // @desc    Register a police officer (admin only)
 // @route   POST /api/admin/register-police
@@ -23,16 +22,11 @@ exports.registerPolice = async (req, res) => {
       return res.status(400).json({ message: 'A user with this email already exists.' });
     }
 
-    // Create in Firebase Auth first
-    await createFirebaseUser(email, password, name);
-
     // Create in backend DB with role 'police'
-    // Use a strong random password for the DB record (Firebase handles actual auth)
-    const dbPassword = 'Fb' + Math.random().toString(36).slice(-6) + Math.random().toString(36).slice(-6).toUpperCase() + '@1';
     const user = await User.create({
       name,
       email,
-      password: dbPassword,
+      password, // Use the provided password
       role: 'police'
     });
 
@@ -66,15 +60,11 @@ exports.registerAdmin = async (req, res) => {
       return res.status(400).json({ message: 'A user with this email already exists.' });
     }
 
-    // Create in Firebase Auth first
-    await createFirebaseUser(email, password, name);
-
     // Create in backend DB with role 'admin'
-    const dbPassword = 'Fb' + Math.random().toString(36).slice(-6) + Math.random().toString(36).slice(-6).toUpperCase() + '@1';
     const user = await User.create({
       name,
       email,
-      password: dbPassword,
+      password, // Use the provided password
       role: 'admin'
     });
 
@@ -107,13 +97,10 @@ exports.registerUser = async (req, res) => {
       return res.status(400).json({ message: 'A user with this email already exists.' });
     }
 
-    await createFirebaseUser(email, password, name);
-
-    const dbPassword = 'Fb' + Math.random().toString(36).slice(-6) + Math.random().toString(36).slice(-6).toUpperCase() + '@1';
     const user = await User.create({
       name,
       email,
-      password: dbPassword,
+      password, // Use the provided password
       role: 'user'
     });
 

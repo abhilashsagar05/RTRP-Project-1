@@ -46,27 +46,6 @@ export const authAPI = {
       body: JSON.stringify({ name, email, password })
     }).then(handleResponse),
 
-  googleLogin: (token) =>
-    fetch(`${API_BASE}/auth/google`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token })
-    }).then(handleResponse),
-
-  firebaseLogin: (firebaseToken, loginType) =>
-    fetch(`${API_BASE}/auth/firebase-login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ firebaseToken, loginType })
-    }).then(handleResponse),
-
-  supabaseLogin: (supabaseToken) =>
-    fetch(`${API_BASE}/auth/supabase-login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ supabaseToken })
-    }).then(handleResponse),
-
   getMe: () =>
     fetch(`${API_BASE}/auth/me`, { headers: getHeaders() }).then(handleResponse)
 };

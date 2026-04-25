@@ -1,14 +1,4 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { auth } from '../firebase';
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  signOut,
-  onAuthStateChanged
-} from 'firebase/auth';
-import { supabase } from '../supabase';
 import { authAPI } from '../services/api';
 
 const AuthContext = createContext(null);
@@ -26,83 +16,56 @@ export function AuthProvider({ children }) {
 
   // On mount, check if we have a stored backend token and validate it
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser && !token) {
-        // Firebase user is signed in but we don't have a backend token yet
-        // This can happen on page refresh — try to exchange the Firebase token
-        try {
-          const idToken = await firebaseUser.getIdToken(true);
-          const data = await authAPI.firebaseLogin(idToken);
-          localStorage.setItem('sphn_token', data.token);
-          setToken(data.token);
-          setUser(data);
-        } catch (err) {
-          console.error('Auto-login via Firebase failed:', err.message);
-          // Don't clear Firebase session — user might just need to re-login on the portal
-        }
-      } else if (token) {
-        // We have a backend token — validate it
+    const initAuth = async () => {
+      if (token) {
         try {
           const userData = await authAPI.getMe();
           setUser(userData);
         } catch (err) {
-          // Backend token is invalid/expired
           console.error('Backend token invalid:', err.message);
           localStorage.removeItem('sphn_token');
           setToken(null);
           setUser(null);
         }
-      } else {
-        // No Firebase user and no token
-        setUser(null);
       }
       setLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
-  }, []);
+    initAuth();
+  }, [token]);
 
   /**
-   * Login with email/password via Firebase, then exchange for backend JWT
-   * @param {string} email
-   * @param {string} password
-   * @param {string} loginType - 'user' | 'police' | 'admin'
+   * Login with email/password directly against the backend
    */
   const login = async (email, password, loginType = 'user') => {
     try {
-      // 1. Authenticate with Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const idToken = await userCredential.user.getIdToken();
+      const data = await authAPI.login(email, password);
+      
+      // Enforce role checks if needed (though backend handles this)
+      if (loginType === 'police' && data.role !== 'police' && data.role !== 'admin') {
+        throw new Error('Access denied. This portal is reserved for Enforcement Personnel.');
+      }
+      if (loginType === 'admin' && data.role !== 'admin') {
+        throw new Error('Access denied. This portal is restricted to System Administrators.');
+      }
 
-      // 2. Exchange Firebase token for backend JWT (with role enforcement)
-      const data = await authAPI.firebaseLogin(idToken, loginType);
-
-      // 3. Store backend token and user data
       localStorage.setItem('sphn_token', data.token);
       setToken(data.token);
       setUser(data);
 
       return data;
     } catch (err) {
-      // Sign out of Firebase if backend rejected the login
-      try { await signOut(auth); } catch (_) {}
       throw new Error(err.message || 'Login failed. Please check your credentials.');
     }
   };
 
   /**
-   * Register a new citizen account via Firebase, then exchange for backend JWT
+   * Register a new citizen account directly via the backend
    */
   const register = async (name, email, password) => {
     try {
-      // 1. Create account in Firebase
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const idToken = await userCredential.user.getIdToken();
+      const data = await authAPI.register(name, email, password);
 
-      // 2. Exchange Firebase token for backend JWT (auto-creates user record with role 'user')
-      const data = await authAPI.firebaseLogin(idToken, 'user');
-
-      // 3. Store backend token and user data
       localStorage.setItem('sphn_token', data.token);
       setToken(data.token);
       setUser(data);
@@ -114,78 +77,30 @@ export function AuthProvider({ children }) {
   };
 
   /**
-   * Google sign-in via Firebase popup, then exchange for backend JWT
+   * Google sign-in (currently disabled as it relied on Firebase)
    */
   const googleLogin = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const idToken = await result.user.getIdToken();
-
-      // Exchange for backend JWT (auto-creates citizen account if new)
-      const data = await authAPI.firebaseLogin(idToken, 'user');
-
-      localStorage.setItem('sphn_token', data.token);
-      setToken(data.token);
-      setUser(data);
-
-      return data;
-    } catch (err) {
-      throw new Error(err.message || 'Google Login failed. Please try again.');
-    }
+    throw new Error('Google Login is currently disabled. Please use email and password.');
   };
 
   /**
-   * Admin Login — direct email/password against the backend (Postgres + bcrypt).
-   * Falls back to Supabase only if explicitly enabled in the future.
+   * Admin Login
    */
   const adminLogin = async (email, password) => {
-    try {
-      const data = await authAPI.login(email, password);
-      if (data.role !== 'admin') {
-        throw new Error('Access denied. This portal is restricted to System Administrators.');
-      }
-      localStorage.setItem('sphn_token', data.token);
-      setToken(data.token);
-      setUser(data);
-      return data;
-    } catch (err) {
-      throw new Error(err.message || 'Admin login failed. Please check your credentials.');
-    }
+    return login(email, password, 'admin');
   };
 
   /**
-   * Police Login — direct email/password against the backend.
+   * Police Login
    */
   const policeLogin = async (email, password) => {
-    try {
-      const data = await authAPI.login(email, password);
-      if (data.role !== 'police' && data.role !== 'admin') {
-        throw new Error('Access denied. This portal is reserved for Enforcement Personnel.');
-      }
-      localStorage.setItem('sphn_token', data.token);
-      setToken(data.token);
-      setUser(data);
-      return data;
-    } catch (err) {
-      throw new Error(err.message || 'Login failed. Please check your credentials.');
-    }
+    return login(email, password, 'police');
   };
 
   /**
-   * Logout from both Firebase, Supabase and the backend
+   * Logout from the backend
    */
   const logout = async () => {
-    try {
-      await signOut(auth);
-    } catch (err) {
-      console.error('Firebase signOut error:', err);
-    }
-    try {
-      await supabase.auth.signOut();
-    } catch (err) {
-      console.error('Supabase signOut error:', err);
-    }
     localStorage.removeItem('sphn_token');
     setToken(null);
     setUser(null);
