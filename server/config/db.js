@@ -48,8 +48,12 @@ const connectDB = async () => {
   try {
     await sequelize.authenticate();
     console.log('Database connected successfully');
-    await sequelize.sync({ alter: true });
-    console.log('Database tables synced');
+    
+    // Skip sync in Vercel to prevent timeouts
+    if (!process.env.VERCEL) {
+      await sequelize.sync({ alter: true });
+      console.log('Database tables synced');
+    }
   } catch (error) {
     console.error('Database connection error:', error.message);
     if (process.env.VERCEL) {
