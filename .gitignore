@@ -51,3 +51,8 @@ env/
 .config/
 .replit
 .vercel
+
+# Agent Skills & Config
+.agents/
+.claude/
+skills-lock.json
