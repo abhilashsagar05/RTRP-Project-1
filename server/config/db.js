@@ -9,40 +9,13 @@ if (databaseUrl && databaseUrl.startsWith('http')) {
   console.warn('WARNING: DATABASE_URL seems to be an HTTP URL instead of a PostgreSQL connection string. Database connection will likely fail.');
 }
 
-const sequelize = databaseUrl
-  ? new Sequelize(databaseUrl, {
-      dialect: 'postgres',
-      logging: false,
-      dialectOptions: {
-        ssl: {
-          require: true,
-          rejectUnauthorized: false
-        }
-      },
-      pool: {
-        max: 10,
-        min: 0,
-        acquire: 30000,
-        idle: 10000
-      }
-    })
-  : new Sequelize(
-      process.env.MYSQL_DATABASE || 'sphn_db',
-      process.env.MYSQL_USER || 'root',
-      process.env.MYSQL_PASSWORD || '',
-      {
-        host: process.env.MYSQL_HOST || 'localhost',
-        port: process.env.MYSQL_PORT || 3306,
-        dialect: 'mysql',
-        logging: false,
-        pool: {
-          max: 10,
-          min: 0,
-          acquire: 30000,
-          idle: 10000
-        }
-      }
-    );
+const path = require('path');
+
+const sequelize = new Sequelize({
+  dialect: 'sqlite',
+  storage: path.join(__dirname, '..', '..', 'database.sqlite'),
+  logging: false
+});
 
 const connectDB = async () => {
   try {

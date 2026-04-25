@@ -116,9 +116,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', database: 'MySQL', timestamp: new Date().toISOString() });
 });
 
-// Seed default users (with strong passwords) — in both DB and Firebase
-const { createFirebaseUser } = require('./config/firebase');
-
+// Seed default users (with strong passwords)
 const seedUsers = async () => {
   try {
     // Primary admin (custom credentials) — uses raw insert to bypass strong-password validation
@@ -154,13 +152,6 @@ const seedUsers = async () => {
       });
       console.log('Admin user seeded in DB: admin@sphn.com / Admin@SPHN2024');
     }
-    // Also ensure admin exists in Firebase
-    try {
-      await createFirebaseUser('admin@sphn.com', 'Admin@SPHN2024', 'Admin');
-      console.log('Admin user synced to Firebase Auth');
-    } catch (fbErr) {
-      console.log('Firebase admin seed skipped:', fbErr.message);
-    }
 
     const policeExists = await User.findOne({ where: { email: 'police@sphn.com' } });
     if (!policeExists) {
@@ -172,13 +163,6 @@ const seedUsers = async () => {
       });
       console.log('Police user seeded in DB: police@sphn.com / Police@SPHN2024');
     }
-    // Also ensure police exists in Firebase
-    try {
-      await createFirebaseUser('police@sphn.com', 'Police@SPHN2024', 'Officer Singh');
-      console.log('Police user synced to Firebase Auth');
-    } catch (fbErr) {
-      console.log('Firebase police seed skipped:', fbErr.message);
-    }
 
     const citizenExists = await User.findOne({ where: { email: 'citizen@sphn.com' } });
     if (!citizenExists) {
@@ -189,13 +173,6 @@ const seedUsers = async () => {
         role: 'user'
       });
       console.log('Citizen user seeded: citizen@sphn.com / Citizen@SPHN2024');
-    }
-    // Also ensure citizen exists in Firebase
-    try {
-      await createFirebaseUser('citizen@sphn.com', 'Citizen@SPHN2024', 'John Citizen');
-      console.log('Citizen user synced to Firebase Auth');
-    } catch (fbErr) {
-      console.log('Firebase citizen seed skipped:', fbErr.message);
     }
   } catch (error) {
     console.log('User seed skipped:', error.message);
