@@ -49,3 +49,4 @@ env/
 .cache/
 .config/
 .replit
+.vercel
